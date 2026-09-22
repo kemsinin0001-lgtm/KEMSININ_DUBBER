@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KEMSININ Dubber</string>
+
+    <!-- Tabs -->
+    <string name="tab_dubber">Dubber</string>
+    <string name="tab_history">History</string>
+
+    <!-- Header -->
+    <string name="header_title">KEMSININ AI DUBBER</string>
+    <string name="header_subtitle">AI Video Dubbing, Subtitling &amp; Voice Synthesis</string>
+
+    <!-- Inputs -->
+    <string name="video_source_label">Select Video</string>
+    <string name="action_pick_video">Choose Video File</string>
+    <string name="api_key_label">Gemini API Key</string>
+    <string name="api_key_placeholder">Enter Google Gemini API Key</string>
+    <string name="target_lang_label">Target Language</string>
+    <string name="voice_label">Voice Model</string>
+    <string name="voice_male">Khmer Male (Piseth)</string>
+    <string name="voice_female">Khmer Female (Sreymom)</string>
+
+    <!-- Steps -->
+    <string name="step1_label">1. Transcribe (Speech-to-Text)</string>
+    <string name="step2_label">2. Translate (Gemini AI)</string>
+    <string name="step3_label">3. Generate Voice (TTS Sync)</string>
+    <string name="step4_label">4. Merge Video &amp; Subtitles</string>
+
+    <!-- Actions -->
+    <string name="action_start_dubbing">Start AI Dubbing</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_play">Play Dubbed Video</string>
+    <string name="action_save_gallery">Save to Gallery</string>
+
+    <!-- Statuses -->
+    <string name="status_idle">Ready to dub</string>
+    <string name="status_processing">Processing video…</string>
+    <string name="status_success">Dubbing completed successfully!</string>
+    <string name="status_failed">Failed: %1$s</string>
+
+    <!-- History -->
+    <string name="history_title">Dubbed Videos</string>
+    <string name="history_empty">No dubbed videos yet.</string>
+</resources>

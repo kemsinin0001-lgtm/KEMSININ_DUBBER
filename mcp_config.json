@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "c:\\Users\\KSN REELSHORT\\AppData\\Roaming\\Antigravity IDE\\User\\globalStorage\\allansantos-dv.mcp-memory-server\\mcp-memory-server.jar",
+        "--workspace",
+        "${workspaceFolder}",
+        "--transport",
+        "both",
+        "--port",
+        "3000"
+      ]
+    }
+  }
+}
