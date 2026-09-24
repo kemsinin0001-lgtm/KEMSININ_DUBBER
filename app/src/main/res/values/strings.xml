@@ -1,44 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">KEMSININ Dubber</string>
-
-    <!-- Tabs -->
-    <string name="tab_dubber">Dubber</string>
-    <string name="tab_history">History</string>
+    <string name="app_name">Phorn Dubber</string>
 
     <!-- Header -->
-    <string name="header_title">KEMSININ AI DUBBER</string>
-    <string name="header_subtitle">AI Video Dubbing, Subtitling &amp; Voice Synthesis</string>
+    <string name="header_title">Phorn Dubber</string>
+    <string name="header_trial">( សាកល្បង )</string>
+    <string name="header_badge">4K</string>
+    <string name="header_subtitle">ស្ទូឌីយោបញ្ចូលសំឡេង AI</string>
 
-    <!-- Inputs -->
-    <string name="video_source_label">Select Video</string>
-    <string name="action_pick_video">Choose Video File</string>
-    <string name="api_key_label">Gemini API Key</string>
-    <string name="api_key_placeholder">Enter Google Gemini API Key</string>
-    <string name="target_lang_label">Target Language</string>
-    <string name="voice_label">Voice Model</string>
-    <string name="voice_male">Khmer Male (Piseth)</string>
-    <string name="voice_female">Khmer Female (Sreymom)</string>
+    <!-- Bottom tabs -->
+    <string name="tab_studio">វីដេអូ &amp; ក្រុម</string>
+    <string name="tab_voice">សិទ្ធិអ្នក</string>
+    <string name="tab_text">អក្សរ &amp; សិលាចារឹក</string>
+    <string name="tab_edit">កែសម្រួល</string>
+    <string name="tab_timeline">លំដាប់</string>
 
-    <!-- Steps -->
-    <string name="step1_label">1. Transcribe (Speech-to-Text)</string>
-    <string name="step2_label">2. Translate (Gemini AI)</string>
-    <string name="step3_label">3. Generate Voice (TTS Sync)</string>
-    <string name="step4_label">4. Merge Video &amp; Subtitles</string>
+    <!-- Studio -->
+    <string name="studio_preview">ផ្ទាំងទស្សនា</string>
+    <string name="studio_link_hint">បិទភ្ជាប់ Link វីដេអូ Douyin (https://v.douyin.com/…)</string>
+    <string name="studio_badge_douyin">Douyin</string>
+    <string name="studio_badge_quality">🔥 4K No-Watermark</string>
+    <string name="studio_action_translate">បកប្រែភាសា</string>
+    <string name="studio_action_save_pc">រក្សាទុកក្នុង PC</string>
+    <string name="studio_action_import_video">នាំចូលវីដេអូ</string>
+    <string name="studio_action_import_folder">នាំចូល Folder</string>
+    <string name="studio_action_copy">ចម្លង Link</string>
+    <string name="studio_action_play">ចាក់សំឡេង</string>
+    <string name="studio_action_stop">បញ្ឈប់</string>
+    <string name="studio_preview_empty">បិទភ្ជាប់ Link វីដេអូ Douyin ខាងក្រោម\nឬនាំចូលវីដេអូពីទូរស័ព្ទរបស់អ្នក</string>
+    <string name="studio_group">ក្រុមវីដេអូ</string>
+    <string name="studio_group_empty">មិនទាន់មានវីដេអូក្នុងក្រុមទេ</string>
+    <string name="studio_label_author">អ្នកបង្កើត</string>
+    <string name="studio_label_duration">រយៈពេល</string>
+    <string name="studio_label_size">ទំហំ</string>
+    <string name="studio_label_source">ប្រភព</string>
+    <string name="studio_source_douyin">Douyin</string>
+    <string name="studio_source_device">ទូរស័ព្ទ</string>
+
+    <!-- Voice -->
+    <string name="voice_title">សិទ្ធិអ្នក</string>
+    <string name="voice_choose">ជ្រើសសំឡេង AI</string>
+    <string name="voice_speed">ល្បឿននិយាយ</string>
+    <string name="voice_pitch">កម្ពស់សំឡេង</string>
+    <string name="voice_volume">កម្រិតសំឡេង</string>
+    <string name="voice_preview">សាកល្បងសំឡេង</string>
+    <string name="voice_generate">បង្កើតសំឡេងសម្រាប់វីដេអូ</string>
+    <string name="voice_sample">សូមស្វាគមន៍មកកាន់ Phorn Dubber កម្មវិធីបញ្ចូលសំឡេងខ្មែរដោយ AI។</string>
+    <string name="voice_hint">សំឡេងបង្កើតដោយ edge-tts និងតម្រឹមតាមពេលវេលានៃអក្សររត់។</string>
+
+    <!-- Subtitles -->
+    <string name="subtitle_title">អក្សរ &amp; សិលាចារឹក</string>
+    <string name="subtitle_empty">មិនទាន់មានអក្សររត់ទេ — នាំចូល SRT ឬបកប្រែជាមុនសិន</string>
+    <string name="subtitle_import">នាំចូល SRT</string>
+    <string name="subtitle_translate">បកប្រែជាភាសាគោលដៅ</string>
+    <string name="subtitle_show_original">អត្ថបទដើម</string>
+    <string name="subtitle_show_translated">ការបកប្រែ</string>
+    <string name="subtitle_lines">%1$d បន្ទាត់</string>
+    <string name="subtitle_script_hint">បិទភ្ជាប់អត្ថបទ (១ បន្ទាត់ = ១ អក្សររត់)</string>
+    <string name="subtitle_build">បង្កើតអក្សររត់ពីអត្ថបទ</string>
+
+    <!-- Edit -->
+    <string name="edit_title">កែសម្រួល</string>
+    <string name="edit_api_title">ការកំណត់ AI</string>
+    <string name="edit_api_key">Gemini API Key</string>
+    <string name="edit_api_hint">បញ្ចូល Google Gemini API Key</string>
+    <string name="edit_test_key">ផ្ទៀងផ្ទាត់ API Key</string>
+    <string name="edit_target_lang">ភាសាគោលដៅ</string>
+    <string name="edit_pipeline">ជំហានដំណើរការ</string>
+    <string name="step1_label">១. អាន Link និងទាញយកវីដេអូ</string>
+    <string name="step2_label">២. រៀបចំអក្សររត់ (SRT)</string>
+    <string name="step3_label">៣. បកប្រែដោយ Gemini</string>
+    <string name="step4_label">៤. បង្កើតសំឡេងខ្មែរ និងនាំចេញ</string>
+    <string name="edit_run">ចាប់ផ្តើមបញ្ចូលសំឡេង</string>
+    <string name="edit_log">កំណត់ហេតុ</string>
+    <string name="edit_engine">ម៉ាស៊ីនបញ្ចូលសំឡេង</string>
+    <string name="edit_engine_unknown">មិនទាន់ដឹងស្ថានភាពម៉ាស៊ីន</string>
+
+    <!-- Timeline -->
+    <string name="timeline_title">លំដាប់</string>
+    <string name="timeline_empty">មិនទាន់មានវីដេអូក្នុងលំដាប់ទេ</string>
+    <string name="timeline_total">រយៈពេលសរុប</string>
+    <string name="timeline_clips">ចំនួនវីដេអូ</string>
+    <string name="timeline_arti">ឯកសារបញ្ចេញ</string>
+    <string name="timeline_export">រក្សាទុកឯកសារ</string>
+    <string name="timeline_export_srt">រក្សាទុក SRT</string>
+    <string name="timeline_clear">សម្អាតលំដាប់</string>
+    <string name="timeline_none">មិនទាន់មានឯកសារបញ្ចេញទេ</string>
+
+    <!-- Status -->
+    <string name="status_idle">រួចរាល់</string>
+    <string name="status_resolving">កំពុងអាន Link…</string>
+    <string name="status_downloading">កំពុងទាញយកវីដេអូ…</string>
+    <string name="status_translating">កំពុងបកប្រែ…</string>
+    <string name="status_speaking">កំពុងបង្កើតសំឡេង…</string>
+    <string name="status_processing">កំពុងដំណើរការ…</string>
+    <string name="status_done">បានបញ្ចប់</string>
+    <string name="status_error">មានបញ្ហា</string>
 
     <!-- Actions -->
-    <string name="action_start_dubbing">Start AI Dubbing</string>
-    <string name="action_cancel">Cancel</string>
-    <string name="action_play">Play Dubbed Video</string>
-    <string name="action_save_gallery">Save to Gallery</string>
-
-    <!-- Statuses -->
-    <string name="status_idle">Ready to dub</string>
-    <string name="status_processing">Processing video…</string>
-    <string name="status_success">Dubbing completed successfully!</string>
-    <string name="status_failed">Failed: %1$s</string>
-
-    <!-- History -->
-    <string name="history_title">Dubbed Videos</string>
-    <string name="history_empty">No dubbed videos yet.</string>
+    <string name="action_share">ចែករំលែក</string>
+    <string name="action_cancel">បោះបង់</string>
 </resources>

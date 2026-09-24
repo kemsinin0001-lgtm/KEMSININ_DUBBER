@@ -18,8 +18,8 @@ android {
         applicationId = "com.kemsinin.dubber"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
@@ -29,6 +29,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Signed with the debug key so the CI-produced APK can be sideloaded
+            // directly. Swap in a real keystore before publishing to a store.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -38,6 +40,8 @@ android {
             isEnable = true
             reset()
             include("arm64-v8a", "x86_64")
+            // The universal APK is the one to install when you are unsure
+            // which ABI your phone uses.
             isUniversalApk = true
         }
     }
@@ -66,10 +70,10 @@ chaquopy {
     defaultConfig {
         version = "3.12"
 
-        val localPy = file("C:/Users/KSN REELSHORT/AppData/Roaming/uv/python/cpython-3.12.14-windows-x86_64-none/python.exe")
-        if (localPy.exists()) {
-            buildPython(localPy.absolutePath)
-        }
+        // Optional: set PYTHON_BUILD_PATH when the 3.12 interpreter is not on PATH.
+        System.getenv("PYTHON_BUILD_PATH")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { buildPython(it) }
 
         pip {
             install("google-generativeai")
