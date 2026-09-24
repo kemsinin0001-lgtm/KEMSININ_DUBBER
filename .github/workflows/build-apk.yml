@@ -5,6 +5,10 @@ on:
     branches: [ "main", "master" ]
     tags:
       - "v*"
+  # Build the APK for every pull request so compile errors are caught before
+  # the merge, and the artifacts contain an installable APK for review.
+  pull_request:
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
 permissions:
