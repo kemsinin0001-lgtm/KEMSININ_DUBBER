@@ -4,20 +4,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Violet circle -->
+    <!-- Orange brand disc -->
     <path
-        android:fillColor="#7C3AED"
-        android:pathData="M54,54 m-34,0 a34,34 0 1,1 68,0 a34,34 0 1,1 -68,0" />
-    <!-- Arrow stem -->
+        android:fillColor="#F97316"
+        android:pathData="M54,54 m-32,0 a32,32 0 1,1 64,0 a32,32 0 1,1 -64,0" />
+    <!-- White "P" mark -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M51.5,36 h5 v22 h-5 z" />
-    <!-- Arrow head -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M43,58 L54,70 L65,58 L54,58 Z" />
-    <!-- Tray -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,76 h40 a4,4 0 0 1 4,4 a4,4 0 0 1 -4,4 h-40 a4,4 0 0 1 -4,-4 a4,4 0 0 1 4,-4 z" />
+        android:fillColor="#00000000"
+        android:pathData="M46,74 L46,34 L56,34 A10,10 0 0 1 56,54 L46,54"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="8" />
 </vector>

@@ -1,6 +1,5 @@
 package com.kemsinin.dubber.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -10,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 private val DarkColors = darkColorScheme(
     primary = Violet,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF311B63),
+    primaryContainer = VioletDeep,
     onPrimaryContainer = Color(0xFFE9DFFF),
     secondary = Emerald,
     onSecondary = Color(0xFF00351F),
@@ -49,9 +48,12 @@ private val LightColors = lightColorScheme(
     onError = Color.White,
 )
 
+/**
+ * The dubbing studio is designed dark-first, so dark is the default scheme.
+ */
 @Composable
 fun KemsininTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(

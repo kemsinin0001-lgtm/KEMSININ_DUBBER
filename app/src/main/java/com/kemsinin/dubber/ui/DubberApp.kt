@@ -1,54 +1,176 @@
 package com.kemsinin.dubber.ui
 
+import android.app.Activity
+import android.content.Intent
 import android.net.Uri
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chaquo.python.Python
 import com.kemsinin.dubber.R
-import com.kemsinin.dubber.ui.theme.*
-import kotlinx.coroutines.Dispatchers
+import com.kemsinin.dubber.ui.screens.EditScreen
+import com.kemsinin.dubber.ui.screens.StudioScreen
+import com.kemsinin.dubber.ui.screens.SubtitleScreen
+import com.kemsinin.dubber.ui.screens.TimelineScreen
+import com.kemsinin.dubber.ui.screens.VoiceScreen
+import com.kemsinin.dubber.ui.theme.Amber
+import com.kemsinin.dubber.ui.theme.CyanAccent
+import com.kemsinin.dubber.ui.theme.DarkBackground
+import com.kemsinin.dubber.ui.theme.DarkSurface
+import com.kemsinin.dubber.ui.theme.DarkSurfaceHigh
+import com.kemsinin.dubber.ui.theme.GreenOK
+import com.kemsinin.dubber.ui.theme.OrangeFlame
+import com.kemsinin.dubber.ui.theme.Rose
+import com.kemsinin.dubber.ui.theme.TextMuted
+import com.kemsinin.dubber.ui.theme.VioletBright
+import com.kemsinin.dubber.ui.theme.VioletDeep
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
+private data class NavItem(val labelRes: Int, val icon: ImageVector)
+
+private val NAV_ITEMS = listOf(
+    NavItem(R.string.tab_studio, Icons.Default.Layers),
+    NavItem(R.string.tab_voice, Icons.Default.Mic),
+    NavItem(R.string.tab_text, Icons.Default.ClosedCaption),
+    NavItem(R.string.tab_edit, Icons.Default.AutoAwesome),
+    NavItem(R.string.tab_timeline, Icons.Default.VideoLibrary),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DubberApp() {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
+    val state = remember { DubberState() }
 
-    var videoUri by remember { mutableStateOf<Uri?>(null) }
-    var apiKey by remember { mutableStateOf("") }
-    var targetLang by remember { mutableStateOf("Khmer") }
-    var selectedVoice by remember { mutableStateOf("km-KH-PisethNeural") }
-    var isProcessing by remember { mutableStateOf(false) }
-    var currentStep by remember { mutableStateOf(0) }
-    var statusMessage by remember { mutableStateOf("Ready to dub") }
-    var logText by remember { mutableStateOf("") }
+    var exportSrtOnly by remember { mutableStateOf(false) }
 
-    val videoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+    val videoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
-        videoUri = uri
         if (uri != null) {
-            statusMessage = "Video selected: ${uri.lastPathSegment ?: "video.mp4"}"
+            persistPermission(context, uri)
+            scope.launch { DubberEngine.importVideo(state, context, uri) }
+        }
+    }
+
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            persistPermission(context, uri)
+            scope.launch { DubberEngine.importFolder(state, context, uri) }
+        }
+    }
+
+    val srtPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch { DubberEngine.importSrt(state, context, uri) }
+        }
+    }
+
+    val exportPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("*/*"),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                if (exportSrtOnly) {
+                    DubberEngine.exportSrt(state, context, uri)
+                } else {
+                    DubberEngine.exportArtifact(state, context, uri)
+                }
+            }
+        }
+    }
+
+    fun exportArtifact() {
+        exportSrtOnly = false
+        exportPicker.launch(state.artifactName.ifBlank { "phorn-dubber-export" })
+    }
+
+    fun exportSrt() {
+        exportSrtOnly = true
+        exportPicker.launch(state.artifactName.ifBlank { "phorn-dubber" } + ".srt")
+    }
+
+    // On-device dictation: the system speech recognizer turns speech into cues.
+    val dictateLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val text = spoken?.firstOrNull().orEmpty().trim()
+            if (text.isEmpty()) {
+                state.fail("មិនបានឮសំឡេងអ្វីទេ")
+            } else {
+                state.appendCues(text)
+                state.note("បានបន្ថែមអក្សររត់ដោយសំឡេង (${state.cues.size} បន្ទាត់)")
+            }
+        }
+    }
+
+    fun startDictation() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            )
+            putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.subtitle_dictate))
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        }
+        try {
+            dictateLauncher.launch(intent)
+        } catch (_: Throwable) {
+            state.fail("ទូរស័ព្ទនេះមិនមានកម្មវិធីស្តាប់សំឡេងទេ")
         }
     }
 
@@ -56,277 +178,219 @@ fun DubberApp() {
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BrandMark()
+                        Spacer(Modifier.width(10.dp))
                         Text(
                             text = stringResource(R.string.header_title),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = Color.White
+                            color = VioletBright,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 17.sp,
+                            maxLines = 1,
                         )
+                        Spacer(Modifier.width(6.dp))
                         Text(
-                            text = stringResource(R.string.header_subtitle),
+                            text = stringResource(R.string.header_trial),
+                            color = Amber,
+                            fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.7f)
+                            maxLines = 1,
                         )
                     }
                 },
+                actions = { QualityBadge() },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkSurface
-                )
+                    containerColor = DarkSurface,
+                    titleContentColor = Color.White,
+                ),
             )
         },
-        containerColor = DarkBackground
+        bottomBar = {
+            NavigationBar(
+                containerColor = DarkSurface,
+                tonalElevation = 0.dp,
+            ) {
+                NAV_ITEMS.forEachIndexed { index, item ->
+                    NavigationBarItem(
+                        selected = state.tab == index,
+                        onClick = { state.tab = index },
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = stringResource(item.labelRes),
+                                modifier = Modifier.size(21.dp),
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(item.labelRes),
+                                fontSize = 9.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CyanAccent,
+                            selectedTextColor = CyanAccent,
+                            indicatorColor = VioletDeep,
+                            unselectedIconColor = TextMuted,
+                            unselectedTextColor = TextMuted,
+                        ),
+                    )
+                }
+            }
+        },
+        containerColor = DarkBackground,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(padding),
         ) {
-            // Video Picker Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.video_source_label),
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
+            StatusStrip(state)
 
-                    Button(
-                        onClick = { videoPickerLauncher.launch("video/*") },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Violet),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.VideoFile, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = if (videoUri != null) "Change Video" else stringResource(R.string.action_pick_video))
-                    }
-
-                    if (videoUri != null) {
-                        Surface(
-                            color = DarkSurfaceHigh,
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Emerald)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = videoUri?.lastPathSegment ?: "Selected Video",
-                                    color = Color.White,
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Gemini API Configuration
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "AI Translation Settings",
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-
-                    OutlinedTextField(
-                        value = apiKey,
-                        onValueChange = { apiKey = it },
-                        label = { Text(stringResource(R.string.api_key_label)) },
-                        placeholder = { Text(stringResource(R.string.api_key_placeholder)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Violet,
-                            unfocusedBorderColor = DarkSurfaceHigh,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        )
-                    )
-
-                    // Target Language Selector
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Khmer", "English", "Thai", "Chinese").forEach { lang ->
-                            FilterChip(
-                                selected = targetLang == lang,
-                                onClick = { targetLang = lang },
-                                label = { Text(lang) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Violet,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-
-                    // Voice Selection
-                    Text(
-                        text = stringResource(R.string.voice_label),
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 14.sp
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = selectedVoice == "km-KH-PisethNeural",
-                            onClick = { selectedVoice = "km-KH-PisethNeural" },
-                            label = { Text(stringResource(R.string.voice_male)) }
-                        )
-                        FilterChip(
-                            selected = selectedVoice == "km-KH-SreymomNeural",
-                            onClick = { selectedVoice = "km-KH-SreymomNeural" },
-                            label = { Text(stringResource(R.string.voice_female)) }
-                        )
-                    }
-                }
-            }
-
-            // Pipeline Progress Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Pipeline Status",
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-
-                    StepRow(step = 1, title = stringResource(R.string.step1_label), isActive = currentStep >= 1, isDone = currentStep > 1)
-                    StepRow(step = 2, title = stringResource(R.string.step2_label), isActive = currentStep >= 2, isDone = currentStep > 2)
-                    StepRow(step = 3, title = stringResource(R.string.step3_label), isActive = currentStep >= 3, isDone = currentStep > 3)
-                    StepRow(step = 4, title = stringResource(R.string.step4_label), isActive = currentStep >= 4, isDone = currentStep > 4)
-
-                    if (isProcessing) {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            color = CyanAccent,
-                            trackColor = DarkSurfaceHigh
-                        )
-                    }
-
-                    Text(
-                        text = statusMessage,
-                        color = CyanAccent,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            // Action Button
-            Button(
-                onClick = {
-                    if (videoUri == null) {
-                        statusMessage = "Please select a video file first"
-                        return@Button
-                    }
-                    if (apiKey.isBlank()) {
-                        statusMessage = "Please provide your Gemini API key"
-                        return@Button
-                    }
-
-                    isProcessing = true
-                    currentStep = 1
-                    statusMessage = "Step 1: Extracting audio and transcribing..."
-
-                    coroutineScope.launch {
-                        try {
-                            withContext(Dispatchers.IO) {
-                                val py = Python.getInstance()
-                                val engine = py.getModule("dubber_engine")
-                                
-                                currentStep = 2
-                                statusMessage = "Step 2: Translating subtitle via Gemini..."
-                                
-                                // Test translation call
-                                val sampleSrt = "1\n00:00:01,000 --> 00:00:04,000\nHello, welcome to this movie."
-                                val translated = engine.callAttr("step2_translate_gemini", sampleSrt, apiKey, targetLang).toString()
-                                
-                                currentStep = 3
-                                statusMessage = "Step 3: Generating Khmer Neural TTS voice..."
-                                
-                                currentStep = 4
-                                statusMessage = "Step 4: Synchronizing video and export complete!"
-                            }
-                            statusMessage = "Dubbing completed successfully!"
-                        } catch (e: Exception) {
-                            statusMessage = "Error: ${e.localizedMessage}"
-                        } finally {
-                            isProcessing = false
-                        }
-                    }
-                },
-                enabled = !isProcessing,
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Emerald),
-                shape = RoundedCornerShape(14.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
-                Icon(Icons.Default.Mic, contentDescription = null, tint = Color.Black)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isProcessing) stringResource(R.string.status_processing) else stringResource(R.string.action_start_dubbing),
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    fontSize = 16.sp
-                )
+                when (state.tab) {
+                    0 -> StudioScreen(
+                        state = state,
+                        scope = scope,
+                        onImportVideo = { videoPicker.launch(arrayOf("video/*")) },
+                        onImportFolder = { folderPicker.launch(null) },
+                        onSaveToPc = { exportArtifact() },
+                    )
+
+                    1 -> VoiceScreen(state = state, scope = scope)
+
+                    2 -> SubtitleScreen(
+                        state = state,
+                        scope = scope,
+                        onImportSrt = { srtPicker.launch(arrayOf("text/*", "application/x-subrip", "*/*")) },
+                        onDictate = { startDictation() },
+                    )
+
+                    3 -> EditScreen(state = state, scope = scope)
+
+                    else -> TimelineScreen(
+                        state = state,
+                        onExportArtifact = { exportArtifact() },
+                        onExportSrt = { exportSrt() },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun StepRow(step: Int, title: String, isActive: Boolean, isDone: Boolean) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+private fun BrandMark() {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(Brush.linearGradient(listOf(OrangeFlame, Rose)))
+            .padding(2.dp)
+            .clip(CircleShape)
+            .background(DarkBackground),
+        contentAlignment = Alignment.Center,
     ) {
-        val iconColor = when {
-            isDone -> Emerald
-            isActive -> CyanAccent
-            else -> Color.Gray
-        }
-
-        Icon(
-            imageVector = if (isDone) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = title,
-            color = if (isActive || isDone) Color.White else Color.Gray,
-            fontSize = 14.sp,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+            text = "P",
+            color = OrangeFlame,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.ExtraBold,
         )
+    }
+}
+
+@Composable
+private fun QualityBadge() {
+    Box(
+        modifier = Modifier
+            .padding(end = 12.dp)
+            .size(36.dp)
+            .clip(CircleShape)
+            .border(2.dp, GreenOK, CircleShape)
+            .background(DarkSurfaceHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.header_badge),
+            color = GreenOK,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.ExtraBold,
+        )
+    }
+}
+
+@Composable
+private fun StatusStrip(state: DubberState) {
+    val accent = when (state.stage) {
+        Stage.ERROR -> Rose
+        Stage.DONE -> GreenOK
+        Stage.IDLE -> TextMuted
+        else -> CyanAccent
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkBackground)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(accent),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(stageLabelRes(state.stage)),
+            color = accent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
+        if (state.detail.isNotBlank()) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = state.detail,
+                color = TextMuted,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+private fun stageLabelRes(stage: Stage): Int = when (stage) {
+    Stage.IDLE -> R.string.status_idle
+    Stage.RESOLVING -> R.string.status_resolving
+    Stage.EXTRACTING -> R.string.status_extracting
+    Stage.TRANSCRIBING -> R.string.status_transcribing
+    Stage.DOWNLOADING -> R.string.status_downloading
+    Stage.TRANSLATING -> R.string.status_translating
+    Stage.SPEAKING -> R.string.status_speaking
+    Stage.DONE -> R.string.status_done
+    Stage.ERROR -> R.string.status_error
+}
+
+private fun persistPermission(context: android.content.Context, uri: Uri) {
+    try {
+        context.contentResolver.takePersistableUriPermission(
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+        )
+    } catch (_: Throwable) {
+        // Not all providers grant persistable permissions.
     }
 }
