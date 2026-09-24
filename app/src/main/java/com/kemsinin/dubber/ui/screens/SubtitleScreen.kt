@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +36,7 @@ import com.kemsinin.dubber.R
 import com.kemsinin.dubber.ui.Cue
 import com.kemsinin.dubber.ui.DubberEngine
 import com.kemsinin.dubber.ui.DubberState
+import com.kemsinin.dubber.ui.Stage
 import com.kemsinin.dubber.ui.components.AppCard
 import com.kemsinin.dubber.ui.components.ChipRow
 import com.kemsinin.dubber.ui.components.GradientButton
@@ -56,10 +59,13 @@ fun SubtitleScreen(
     state: DubberState,
     scope: CoroutineScope,
     onImportSrt: () -> Unit,
+    onDictate: () -> Unit,
 ) {
     val context = LocalContext.current
     val originalLabel = stringResource(R.string.subtitle_show_original)
     val translatedLabel = stringResource(R.string.subtitle_show_translated)
+    val listening = state.busy &&
+        (state.stage == Stage.EXTRACTING || state.stage == Stage.TRANSCRIBING)
 
     AppCard(glow = CyanAccent) {
         SectionTitle(
@@ -73,6 +79,55 @@ fun SubtitleScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
             },
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        GradientButton(
+            text = if (listening) {
+                stringResource(R.string.status_processing)
+            } else {
+                stringResource(R.string.subtitle_auto)
+            },
+            icon = Icons.Default.Mic,
+            enabled = !state.busy,
+            onClick = { scope.launch { DubberEngine.autoSubtitles(state, context) } },
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SoftButton(
+                text = stringResource(R.string.subtitle_dictate),
+                icon = Icons.Default.GraphicEq,
+                modifier = Modifier.weight(1f),
+                container = DarkSurfaceHigh,
+                contentColor = CyanAccent,
+                enabled = !state.busy,
+                fontSize = 13,
+                onClick = onDictate,
+            )
+            SoftButton(
+                text = stringResource(R.string.subtitle_import),
+                icon = Icons.Default.Upload,
+                modifier = Modifier.weight(1f),
+                container = DarkSurfaceHigh,
+                contentColor = VioletBright,
+                enabled = !state.busy,
+                fontSize = 13,
+                onClick = onImportSrt,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = stringResource(R.string.subtitle_audio_hint),
+            color = TextMuted,
+            fontSize = 11.sp,
         )
 
         Spacer(Modifier.height(14.dp))
@@ -102,28 +157,15 @@ fun SubtitleScreen(
 
         Spacer(Modifier.height(10.dp))
 
-        Row(
+        SoftButton(
+            text = stringResource(R.string.subtitle_build),
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            SoftButton(
-                text = stringResource(R.string.subtitle_import),
-                icon = Icons.Default.Upload,
-                modifier = Modifier.weight(1f),
-                container = DarkSurfaceHigh,
-                contentColor = VioletBright,
-                onClick = onImportSrt,
-            )
-            SoftButton(
-                text = stringResource(R.string.subtitle_build),
-                modifier = Modifier.weight(1f),
-                container = Violet,
-                contentColor = Color.White,
-                borderColor = VioletBright,
-                fontSize = 13,
-                onClick = { state.cuesFromScript(state.scriptText) },
-            )
-        }
+            container = Violet,
+            contentColor = Color.White,
+            borderColor = VioletBright,
+            fontSize = 13,
+            onClick = { state.cuesFromScript(state.scriptText) },
+        )
 
         Spacer(Modifier.height(12.dp))
 

@@ -8,6 +8,7 @@ structured results without any extra serialization dependency.
 import os
 import re
 import json
+import time
 import asyncio
 
 # ---------------------------------------------------------------------------
@@ -37,6 +38,12 @@ except Exception as exc:  # pragma: no cover
 else:
     _EDGE_TTS_ERROR = None
 
+
+# Model used for every Gemini call, so a version bump is a one-line change.
+MODEL_NAME = "gemini-1.5-flash"
+
+# Audio above this size is sent through the File API instead of inline data.
+INLINE_AUDIO_LIMIT = 18 * 1024 * 1024
 
 MOBILE_UA = (
     "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 "
@@ -292,7 +299,7 @@ def translate_srt(srt_content, api_key, target_lang="Khmer"):
             return _err("Nothing to translate")
 
         genai.configure(api_key=api_key.strip())
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel(MODEL_NAME)
         prompt = "%s\n\nSRT Content:\n%s" % (
             TRANSLATE_INSTRUCTIONS.format(lang=target_lang),
             srt_content,
@@ -314,7 +321,7 @@ def translate_text(text, api_key, target_lang="Khmer"):
         if not api_key or not api_key.strip():
             return _err("Missing Gemini API key")
         genai.configure(api_key=api_key.strip())
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel(MODEL_NAME)
         response = model.generate_content(
             "Translate this video title into %s. Reply with the translation only:\n%s"
             % (target_lang, text)
@@ -329,9 +336,70 @@ def test_gemini(api_key):
         if genai is None:
             return _err("Gemini library unavailable: %s" % _GENAI_ERROR)
         genai.configure(api_key=api_key.strip())
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel(MODEL_NAME)
         response = model.generate_content("Reply with the single word: OK")
         return _ok(reply=(response.text or "").strip())
+    except Exception as exc:
+        return _err(exc)
+
+
+TRANSCRIBE_INSTRUCTIONS = (
+    "You are a professional subtitle transcriber for a dubbing studio.\n"
+    "Listen to the audio and transcribe every spoken line into {lang}.\n"
+    "Rules:\n"
+    "1. Answer with SRT only: the cue number, then 'HH:MM:SS,mmm --> HH:MM:SS,mmm', "
+    "then the spoken text, then a blank line.\n"
+    "2. The timestamps must match the audio. Keep each cue to one sentence "
+    "(roughly 3-8 seconds) so it can be dubbed.\n"
+    "3. Never translate. Never add commentary, notes or markdown fences.\n"
+    "4. If the audio contains no speech, answer with nothing at all."
+)
+
+
+def transcribe_audio(wav_path, api_key, language_hint="auto"):
+    """Speech-to-text with timestamps: returns SRT cues for the given audio file."""
+    try:
+        if genai is None:
+            return _err("Gemini library unavailable: %s" % _GENAI_ERROR)
+        if not api_key or not api_key.strip():
+            return _err("Missing Gemini API key")
+        if not wav_path or not os.path.exists(wav_path):
+            return _err("Audio file not found")
+
+        genai.configure(api_key=api_key.strip())
+        model = genai.GenerativeModel(MODEL_NAME)
+
+        hint = (language_hint or "auto").strip()
+        if not hint or hint.lower() == "auto":
+            hint = "the original language spoken in the audio"
+        prompt = TRANSCRIBE_INSTRUCTIONS.format(lang=hint)
+
+        size = os.path.getsize(wav_path)
+        uploaded = None
+        if size <= INLINE_AUDIO_LIMIT:
+            with open(wav_path, "rb") as handle:
+                payload = {"mime_type": "audio/wav", "data": handle.read()}
+            response = model.generate_content([prompt, payload])
+        else:
+            uploaded = genai.upload_file(wav_path, mime_type="audio/wav")
+            waited = 0
+            while getattr(uploaded.state, "name", "") == "PROCESSING" and waited < 180:
+                time.sleep(3)
+                waited += 3
+                uploaded = genai.get_file(uploaded.name)
+            if getattr(uploaded.state, "name", "") == "FAILED":
+                return _err("Gemini could not process this audio track")
+            response = model.generate_content([prompt, uploaded])
+            try:
+                genai.delete_file(uploaded.name)
+            except Exception:
+                pass
+
+        text = (response.text or "").strip()
+        text = text.replace("```srt", "").replace("```", "").strip()
+        if not text:
+            return _ok(srt="", plain="", size_bytes=size, language=hint)
+        return _ok(srt=text + "\n", plain=text, size_bytes=size, language=hint)
     except Exception as exc:
         return _err(exc)
 

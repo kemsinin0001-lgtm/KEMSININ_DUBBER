@@ -7,6 +7,8 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import com.chaquo.python.Python
+import com.kemsinin.dubber.media.AudioExtraction
+import com.kemsinin.dubber.media.AudioExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -84,6 +86,14 @@ object DubberEngine {
 
     private fun isVideoName(name: String): Boolean =
         videoExtensions.any { name.lowercase().endsWith(it) }
+
+    /** Accepts both downloaded file paths and imported content:// URIs. */
+    private fun sourceUri(path: String): Uri =
+        if (path.startsWith("content://") || path.startsWith("file://")) {
+            Uri.parse(path)
+        } else {
+            Uri.fromFile(File(path))
+        }
 
     fun thumbnailOf(context: Context, uri: Uri): Bitmap? {
         val retriever = MediaMetadataRetriever()
@@ -337,6 +347,76 @@ object DubberEngine {
     }
 
     // -----------------------------------------------------------------------
+    // Speech to text (subtitles from the video audio)
+    // -----------------------------------------------------------------------
+    /**
+     * Decodes the video's audio track on the device and turns it into timed
+     * subtitle cues, so the rest of the pipeline can run without a script.
+     */
+    suspend fun autoSubtitles(state: DubberState, context: Context) {
+        val source = state.localVideoPath
+        if (source.isBlank()) {
+            state.fail("សូមបញ្ចូល Link ឬនាំចូលវីដេអូជាមុនសិន")
+            return
+        }
+        if (state.apiKey.isBlank()) {
+            state.fail("សូមបញ្ចូល Gemini API Key ក្នុងផ្ទាំង «កែសម្រួល» ដើម្បីសរសេរអក្សររត់")
+            return
+        }
+
+        state.begin(Stage.EXTRACTING, "កំពុងបំបែកសំឡេងពីវីដេអូ…")
+        val folder = File(context.cacheDir, "audio").apply { mkdirs() }
+        val target = File(folder, "source.wav")
+        val outcome = AudioExtractor.extract(context, sourceUri(source), target)
+        if (outcome is AudioExtraction.Failure) {
+            state.fail(outcome.message)
+            return
+        }
+        val audio = outcome as AudioExtraction.Success
+        state.audioPath = audio.path
+        state.audioLabel = "%.1f MB".format(audio.sizeBytes / 1048576.0)
+        if (state.durationMs <= 0L) {
+            state.durationMs = audio.durationMs
+        }
+        state.note(
+            "សំឡេង ${formatClock(audio.durationMs)} · ${state.audioLabel} (បំបែកនៅលើទូរស័ព្ទ)"
+        )
+
+        state.begin(Stage.TRANSCRIBING, "កំពុងស្តាប់ និងសរសេរអក្សររត់…")
+        withContext(Dispatchers.IO) {
+            try {
+                val json = callJson("transcribe_audio", audio.path, state.apiKey.trim(), "auto")
+                if (!json.optBoolean("ok")) {
+                    state.fail(errorOf(json))
+                    return@withContext
+                }
+
+                val parsed = parseSrt(json.optString("srt"))
+                if (parsed.isNotEmpty()) {
+                    state.cues.clear()
+                    state.cues.addAll(parsed)
+                    state.originalCues.clear()
+                    state.originalCues.addAll(parsed)
+                    state.succeed("បានសរសេរអក្សររត់ ${parsed.size} បន្ទាត់ពីសំឡេងវីដេអូ")
+                    return@withContext
+                }
+
+                val plain = json.optString("plain").trim()
+                if (plain.isEmpty()) {
+                    state.fail("រកមិនឃើញសំឡេងនិយាយក្នុងវីដេអូនេះទេ")
+                    return@withContext
+                }
+                state.cuesFromScript(plain)
+                state.succeed(
+                    "បានបង្កើតអក្សររត់ ${state.cues.size} បន្ទាត់ (ដោយគ្មាន timestamp ពី AI)"
+                )
+            } catch (error: Throwable) {
+                state.fail(error.localizedMessage ?: "សរសេរអក្សររត់មិនបានសម្រេច")
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Voice synthesis
     // -----------------------------------------------------------------------
     suspend fun previewVoice(state: DubberState, context: Context, sample: String) {
@@ -432,11 +512,13 @@ object DubberEngine {
             if (state.failed) return
         }
         if (state.cues.isEmpty()) {
-            state.fail(
-                "មិនទាន់មានអក្សររត់ទេ — សូមបញ្ចូលអត្ថបទ ឬនាំចូល SRT " +
-                    "ក្នុងផ្ទាំង «អក្សរ & សិលាចារឹក» ជាមុនសិន"
-            )
-            return
+            if (state.localVideoPath.isBlank()) {
+                state.fail("សូមបញ្ចូល Link ឬនាំចូលវីដេអូជាមុនសិន")
+                return
+            }
+            // No script and no subtitles yet: generate them from the audio.
+            autoSubtitles(state, context)
+            if (state.failed || state.cues.isEmpty()) return
         }
         translateSubtitles(state, context)
         if (state.failed) return

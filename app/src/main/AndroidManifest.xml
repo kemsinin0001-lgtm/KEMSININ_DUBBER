@@ -9,6 +9,13 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
+    <!-- Needed on API 30+ so the app can see the device speech recognizer. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name="com.chaquo.python.android.PyApplication"
         android:allowBackup="true"

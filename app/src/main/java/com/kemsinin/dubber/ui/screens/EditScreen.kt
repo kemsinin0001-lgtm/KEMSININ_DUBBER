@@ -161,9 +161,10 @@ fun EditScreen(state: DubberState, scope: CoroutineScope) {
         val stepIndex = when (state.stage) {
             Stage.IDLE, Stage.ERROR -> 0
             Stage.RESOLVING, Stage.DOWNLOADING -> 1
-            Stage.TRANSLATING -> 2
-            Stage.SPEAKING -> 3
-            Stage.DONE -> 5
+            Stage.EXTRACTING, Stage.TRANSCRIBING -> 2
+            Stage.TRANSLATING -> 3
+            Stage.SPEAKING -> 4
+            Stage.DONE -> 6
         }
 
         StepRow(1, stringResource(R.string.step1_label), stepIndex >= 1, stepIndex > 1)

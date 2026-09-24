@@ -6,7 +6,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /** Which part of the dubbing pipeline the app is currently running. */
-enum class Stage { IDLE, RESOLVING, DOWNLOADING, TRANSLATING, SPEAKING, DONE, ERROR }
+enum class Stage {
+    IDLE,
+    RESOLVING,
+    DOWNLOADING,
+    EXTRACTING,
+    TRANSCRIBING,
+    TRANSLATING,
+    SPEAKING,
+    DONE,
+    ERROR,
+}
 
 /** One subtitle cue. */
 data class Cue(
@@ -138,6 +148,10 @@ class DubberState {
     var localVideoName by mutableStateOf("")
     var localVideoLabel by mutableStateOf("")
 
+    // On-device audio decoded from the video, used for speech-to-text
+    var audioPath by mutableStateOf("")
+    var audioLabel by mutableStateOf("")
+
     // AI settings
     var apiKey by mutableStateOf("")
     var targetLang by mutableStateOf(LANGUAGE_OPTIONS.first().value)
@@ -246,6 +260,26 @@ class DubberState {
                     text = line,
                 )
             )
+        }
+        originalCues.clear()
+        originalCues.addAll(cues)
+    }
+
+    /**
+     * Appends dictated lines as cues, filling the timeline from the end of the
+     * last cue to the end of the video (3 s per line when there is no room).
+     */
+    fun appendCues(text: String) {
+        val lines = text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+        if (lines.isEmpty()) return
+
+        val start = cues.lastOrNull()?.endMs ?: 0L
+        val end = if (durationMs > start) durationMs else start + lines.size * 3000L
+        val span = ((end - start) / lines.size).coerceAtLeast(1500L)
+
+        lines.forEachIndexed { offset, line ->
+            val from = start + span * offset
+            cues.add(Cue(index = cues.size + 1, startMs = from, endMs = from + span, text = line))
         }
         originalCues.clear()
         originalCues.addAll(cues)

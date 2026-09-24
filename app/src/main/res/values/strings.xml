@@ -58,6 +58,9 @@
     <string name="subtitle_lines">%1$d បន្ទាត់</string>
     <string name="subtitle_script_hint">បិទភ្ជាប់អត្ថបទ (១ បន្ទាត់ = ១ អក្សររត់)</string>
     <string name="subtitle_build">បង្កើតអក្សររត់ពីអត្ថបទ</string>
+    <string name="subtitle_auto">សរសេរអក្សររត់ពីសំឡេងវីដេអូ</string>
+    <string name="subtitle_dictate">និយាយបញ្ចូលអក្សររត់</string>
+    <string name="subtitle_audio_hint">សំឡេងត្រូវបានបំបែកនៅលើទូរស័ព្ទ (16 kHz mono WAV) បន្ទាប់មកសរសេរជាអក្សររត់ជាមួយ timestamp ដោយ AI ។ ត្រូវការអ៊ីនធឺណិត និង Gemini API Key ។</string>
 
     <!-- Edit -->
     <string name="edit_title">កែសម្រួល</string>
@@ -68,7 +71,7 @@
     <string name="edit_target_lang">ភាសាគោលដៅ</string>
     <string name="edit_pipeline">ជំហានដំណើរការ</string>
     <string name="step1_label">១. អាន Link និងទាញយកវីដេអូ</string>
-    <string name="step2_label">២. រៀបចំអក្សររត់ (SRT)</string>
+    <string name="step2_label">២. សរសេរអក្សររត់ពីសំឡេងវីដេអូ</string>
     <string name="step3_label">៣. បកប្រែដោយ Gemini</string>
     <string name="step4_label">៤. បង្កើតសំឡេងខ្មែរ និងនាំចេញ</string>
     <string name="edit_run">ចាប់ផ្តើមបញ្ចូលសំឡេង</string>
@@ -91,6 +94,8 @@
     <string name="status_idle">រួចរាល់</string>
     <string name="status_resolving">កំពុងអាន Link…</string>
     <string name="status_downloading">កំពុងទាញយកវីដេអូ…</string>
+    <string name="status_extracting">កំពុងបំបែកសំឡេងពីវីដេអូ…</string>
+    <string name="status_transcribing">កំពុងស្តាប់ និងសរសេរអក្សររត់…</string>
     <string name="status_translating">កំពុងបកប្រែ…</string>
     <string name="status_speaking">កំពុងបង្កើតសំឡេង…</string>
     <string name="status_processing">កំពុងដំណើរការ…</string>

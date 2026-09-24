@@ -1,7 +1,9 @@
 package com.kemsinin.dubber.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -140,6 +142,38 @@ fun DubberApp() {
         exportPicker.launch(state.artifactName.ifBlank { "phorn-dubber" } + ".srt")
     }
 
+    // On-device dictation: the system speech recognizer turns speech into cues.
+    val dictateLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val text = spoken?.firstOrNull().orEmpty().trim()
+            if (text.isEmpty()) {
+                state.fail("មិនបានឮសំឡេងអ្វីទេ")
+            } else {
+                state.appendCues(text)
+                state.note("បានបន្ថែមអក្សររត់ដោយសំឡេង (${state.cues.size} បន្ទាត់)")
+            }
+        }
+    }
+
+    fun startDictation() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            )
+            putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.subtitle_dictate))
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        }
+        try {
+            dictateLauncher.launch(intent)
+        } catch (_: Throwable) {
+            state.fail("ទូរស័ព្ទនេះមិនមានកម្មវិធីស្តាប់សំឡេងទេ")
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -236,6 +270,7 @@ fun DubberApp() {
                         state = state,
                         scope = scope,
                         onImportSrt = { srtPicker.launch(arrayOf("text/*", "application/x-subrip", "*/*")) },
+                        onDictate = { startDictation() },
                     )
 
                     3 -> EditScreen(state = state, scope = scope)
@@ -340,6 +375,8 @@ private fun StatusStrip(state: DubberState) {
 private fun stageLabelRes(stage: Stage): Int = when (stage) {
     Stage.IDLE -> R.string.status_idle
     Stage.RESOLVING -> R.string.status_resolving
+    Stage.EXTRACTING -> R.string.status_extracting
+    Stage.TRANSCRIBING -> R.string.status_transcribing
     Stage.DOWNLOADING -> R.string.status_downloading
     Stage.TRANSLATING -> R.string.status_translating
     Stage.SPEAKING -> R.string.status_speaking
